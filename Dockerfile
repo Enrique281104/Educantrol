@@ -1,22 +1,14 @@
-# Dockerfile para la aplicación Spring Boot (Java 17)
-FROM openjdk:17-jdk-alpine
-
-# Establece el directorio de trabajo
+# Fase de construcción (usa Maven para compilar)
+FROM maven:3.8.6-eclipse-temurin-17 AS build
 WORKDIR /app
+COPY pom.xml .
+RUN mvn dependency:go-offline
+COPY src ./src
+RUN mvn package -DskipTests
 
-# Copia el jar compilado en el contenedor
-# Asegúrate de que el jar se encuentre en la ruta target/app.jar
-COPY target/my-app-1.0-SNAPSHOT.jar app.jar
-
-# Exponer el puerto en el que la aplicación escucha (usa el mismo que en tu configuracin: 8080)
+# Fase de producción (imagen ligera)
+FROM eclipse-temurin:17-jre
+WORKDIR /app
+COPY --from=build /app/target/my-app-1.0-SNAPSHOT.jar ./app.jar
 EXPOSE 8080
-
-# Variables de entorno por defecto (se pueden sobrescribir en el comando docker run)
-ENV SPRING_DATASOURCE_URL=jdbc:mariadb://vaadin_db:3306/Educantrol
-ENV SPRING_DATASOURCE_USERNAME=luis
-ENV SPRING_DATASOURCE_PASSWORD=master
-ENV PORT=8080
-
-# Ejecuta la aplicación
 CMD ["java", "-jar", "app.jar"]
-#CMD java -jar app.jar
